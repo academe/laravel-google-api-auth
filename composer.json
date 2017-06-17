@@ -1,0 +1,21 @@
+{
+  "name": "academe/googleapi",
+  "description": "Package to access the API of a Google account authorised by a user, for Laravel 5.4+",
+  "keywords": ["google", "analytics", "ga"],
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Jason Judge",
+      "email": "jason.judge@academe.co.uk"
+    }
+  ],
+  "require": {
+    "php": ">=5.6.4",
+    "laravel/framework": "5.4.*"
+  },
+  "autoload": {
+    "psr-4": {
+      "Academe\\GoogleApi\\": "src/"
+    }
+  }
+}
