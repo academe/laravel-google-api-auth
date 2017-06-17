@@ -32,8 +32,9 @@ class CreateGapiAuthorisationsTable extends Migration
             $table->string('refresh_token', 250)->nullable();
 
             // The local time the current access_token was created by Google.
-            // CHECKME: time() or timestamp()? One is affected by DST, the other not. IIUC.
-            $table->time('created_time')->nullable();
+            // We will just use an int so there are no problems spanning timezones
+            // and implicit conversions when moving into and out of the database.
+            $table->integer('created_time')->unsigned()->nullable();
 
             // The period the access_token will last, in seconds.
             $table->integer('expires_in')->unsigned()->nullable();

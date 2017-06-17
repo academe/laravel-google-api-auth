@@ -38,35 +38,14 @@ class GoogleApiController extends BaseController
     }
 
     /**
-     * Start the Google API OAuth 2.0 authorisation process.
+     * Get an instance of teh Google API client.
+     * This is just the base credentials. To use the API we also need to
+     * set $client->setAccessToken($auth->json_token);
+     * Also we need to register a callback to catch token renewals so they
+     * can be saved.
      */
-    public function authorise(Request $request)
+    private function getClient()
     {
-        // Create a new model instance to follow the authoriation through.
-
-        $auth = new Authorisation();
-
-        // The current user is the creator/owner.
-        $auth->user_id = Auth::user()->id;
-
-        $auth->save();
-
-        // Save the ID in the session to get us back to this model instance.
-
-        $request->session()->put($this->session_key_auth_id, $auth->id);
-
-        // Set an optional final redirect URL so we can get back to
-        // where we requested the authorisation from.
-        // CHECKME: can the final URL be passed to Google to send back at
-        // the end, rather than keeping it in the session?
-
-        $final_url = Input::get('final_url', '');
-
-        $request->session()->put($this->session_key_final_url, $final_url);
-
-        // Now redirect to Google for authorisation.
-        // TODO: move this into some kind of service for reusing.
-
         $client = new Google_Client();
         $client->setApplicationName('Application TBC');
         $client->setClientId(config('googleapi.client_id'));
@@ -83,6 +62,47 @@ class GoogleApiController extends BaseController
         $client->setAccessType('offline');
         $client->setApprovalPrompt('force');
 
+        return $client;
+    }
+
+    /**
+     * Start the Google API OAuth 2.0 authorisation process.
+     */
+    public function authorise(Request $request)
+    {
+        // Get or create a new model instance to follow the authoriation
+        // through.
+        // With just one set of credentials, each user can have only one
+        // active authorisation.
+
+        $auth = Authorisation::currentUser()->first() ?: new Authorisation();
+
+        // The current user is the creator/owner.
+        $auth->user_id = Auth::user()->id;
+
+        // Clear any existing tokens. TODO: move this to the model.
+        $auth->access_token = null;
+        $auth->refresh_token = null;
+
+        $auth->save();
+
+        // Save the ID in the session so the callback knows where to look.
+
+        $request->session()->put($this->session_key_auth_id, $auth->id);
+
+        // Set an optional final redirect URL so we can get back to
+        // where we requested the authorisation from.
+        // CHECKME: can the final URL be passed to Google to send back at
+        // the end, rather than keeping it in the session?
+
+        $final_url = Input::get('final_url', '');
+
+        $request->session()->put($this->session_key_final_url, $final_url);
+
+        // Now redirect to Google for authorisation.
+
+        $client = $this->getClient();
+
         $authUrl = $client->createAuthUrl();
 
         return redirect($authUrl);
@@ -94,5 +114,28 @@ class GoogleApiController extends BaseController
      */
     public function callback(Request $request)
     {
+        // Get the authorisation record waitng for the callback.
+        $auth = Authorisation::currentUser()
+            ->where('id', '=', $request->session()->get($this->session_key_auth_id))
+            // TODO: check the state too, making sure we are expecting this callback.
+            ->firstOrFail();
+
+        // The temporary token.
+        $code = Input::get('code');
+
+        $client = $this->getClient();
+
+        // TODO: check for errors here and set the final state approriately.
+        $client->authenticate($code);
+
+        $token_details = $client->getAccessToken();
+
+        // Store the details back in the record.
+
+        $auth->json_token = $token_details;
+
+        $auth->save();
+
+        return redirect(url('home'));
     }
 }

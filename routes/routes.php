@@ -11,7 +11,7 @@ Route::group(['middleware' => 'web'], function() {
         ->name('academe_gapi_authorise');
 
     // The "redirect" route, i.e. the rturn from Google.
-    Route::get('gapi/callback', 'Academe\GoogleApi\Controllers\GoogleApiController@authorise')
+    Route::get('gapi/oauth2callback', 'Academe\GoogleApi\Controllers\GoogleApiController@callback')
         ->name('academe_gapi_callback');
 
 });

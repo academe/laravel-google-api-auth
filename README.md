@@ -27,3 +27,14 @@ user providing authorisation for their APIs (with OAuth 2) will not need to
 set up anything special in their account.
 
 I hope that sets the context of what this package is trying to achieve.
+
+## TODO
+
+* Multiple authorisations for a single user, I *think* are not permitted.
+  So think about invalidating any authorisations already in effect for that
+  user. This assumes there is only one set of credentials (a good assumption
+  for now, but may change later) so it means each user should only have one
+  record in the authorisations table.
+* Method to cancel an authorisation. Try cancelling it reotely (which may or
+  may not succeed) then just remove the local access and renewal tokens.
+
