@@ -7,6 +7,7 @@ use Academe\GoogleApi\Models\Authorisation;
 use Illuminate\Http\Request;
 use Google_Client;
 use Session;
+use Config;
 use Input;
 use Auth;
 use URL;
@@ -124,6 +125,9 @@ class GoogleApiController extends BaseController
         // The temporary token.
         $code = Input::get('code');
 
+        // The temporary token.
+        $final_redirect = $request->session()->get($this->session_key_final_url);
+
         $client = $this->getClient();
 
         // TODO: check for errors here and set the final state approriately.
@@ -140,6 +144,19 @@ class GoogleApiController extends BaseController
 
         $auth->save();
 
-        return redirect(url('home'));
+        // If no final URL was provided with the initial authorisation,
+        // then use the default route or path.
+
+        if (empty($final_redirect)) {
+            $final_redirect = (
+                Config::get('googleapi.default_final_route')
+                ? route(Config::get('googleapi.default_final_route'))
+                : url(Config::get('googleapi.default_final_path'))
+            );
+        } else {
+            $request->session()->forget($this->session_key_final_url);
+        }
+
+        return redirect($final_redirect);
     }
 }
