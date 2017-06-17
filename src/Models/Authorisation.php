@@ -21,6 +21,11 @@ use Auth;
 
 class Authorisation extends Model
 {
+    // The status values.
+    const STATE_AUTH       = 'auth';
+    const STATE_ACTIVE     = 'active';
+    const STATE_INACTIVE   = 'inactive';
+
     // The default table name.
     // Overridable by config 'googleapi.authorisation_table'
     protected $table = 'gapi_authorisations';

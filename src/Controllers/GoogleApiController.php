@@ -81,6 +81,7 @@ class GoogleApiController extends BaseController
         $auth->user_id = Auth::user()->id;
 
         // Clear any existing tokens. TODO: move this to the model.
+        $auth->state = $auth::STATE_AUTH;
         $auth->access_token = null;
         $auth->refresh_token = null;
 
@@ -117,7 +118,7 @@ class GoogleApiController extends BaseController
         // Get the authorisation record waitng for the callback.
         $auth = Authorisation::currentUser()
             ->where('id', '=', $request->session()->get($this->session_key_auth_id))
-            // TODO: check the state too, making sure we are expecting this callback.
+            ->where('state', '=', Authorisation::STATE_AUTH)
             ->firstOrFail();
 
         // The temporary token.
@@ -128,11 +129,14 @@ class GoogleApiController extends BaseController
         // TODO: check for errors here and set the final state approriately.
         $client->authenticate($code);
 
+        // The token details will be an array.
         $token_details = $client->getAccessToken();
 
-        // Store the details back in the record.
-
+        // Store the token details back in the model.
         $auth->json_token = $token_details;
+
+        //
+        $auth->state = $auth::STATE_ACTIVE;
 
         $auth->save();
 

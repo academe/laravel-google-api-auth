@@ -24,6 +24,12 @@ class CreateGapiAuthorisationsTable extends Migration
             $table->integer('user_id')->unsigned();
             $table->foreign('user_id')->references('id')->on('users');
 
+            // States:
+            // + "auth" - user has been sent to Google to authorise
+            // + "active" - account authorised
+            // + "inactive" - account authorisation withdrawn
+            $table->enum('state', ['auth', 'active', 'inactive'])->default('auth');
+
             // Access token.
             // We do not know the maximum length of the token, so we won't set one.
             $table->text('access_token')->nullable();

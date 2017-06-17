@@ -28,6 +28,18 @@ set up anything special in their account.
 
 I hope that sets the context of what this package is trying to achieve.
 
+## Using This Package
+
+These are just rough developer usage notes.
+
+* Install the package and run the database migrations.
+* Set the Google API credentials (check out the config file), making sure
+  the Analytics scope is enabled.
+* Start an authorisation by going to `route('academe_gapi_authorise')`
+* The first time you try it, Google will complain about the redirect URL.
+  Just follow the instructions Google gives to add the redirect URL to the
+  Google web aplication.
+
 ## TODO
 
 * Multiple authorisations for a single user, I *think* are not permitted.
@@ -37,4 +49,8 @@ I hope that sets the context of what this package is trying to achieve.
   record in the authorisations table.
 * Method to cancel an authorisation. Try cancelling it reotely (which may or
   may not succeed) then just remove the local access and renewal tokens.
+* Some way to handle an expired access token that we did not renew in time.
+  This will result in an exception when it is used. The action will be to
+  catch the exception, attempt to renew the access token, then try the same
+  action again. How we would wrap that is not clear.
 
