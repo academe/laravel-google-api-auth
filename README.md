@@ -17,11 +17,11 @@ but it can be used for any of the Google APIs.
 It will support renewal keys, so will be able to access the API offline,
 i.e. when the user is not present.
 
-The aim is that access token renewals wil be invisable to your application.
+The aim is that access token renewals will be invisible to your application.
 The way the Google API Client is written, this may not be entirely possible,
 but I hope with the right wrappers it will be.
 
-Your applicartion will need to be registered with Google, and will need to
+Your application will need to be registered with Google, and will need to
 state up front what contexts it wants to access, i.e. which APIs. The end
 user providing authorisation for their APIs (with OAuth 2) will not need to
 set up anything special in their account.
