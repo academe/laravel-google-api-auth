@@ -4,6 +4,7 @@ namespace Academe\GoogleApi\Controllers;
 
 use Illuminate\Routing\Controller as BaseController;
 use Academe\GoogleApi\Models\Authorisation;
+use Academe\GoogleApi\Helper;
 use Illuminate\Http\Request;
 use Google_Client;
 use Session;
@@ -39,34 +40,6 @@ class GoogleApiController extends BaseController
     }
 
     /**
-     * Get an instance of teh Google API client.
-     * This is just the base credentials. To use the API we also need to
-     * set $client->setAccessToken($auth->json_token);
-     * Also we need to register a callback to catch token renewals so they
-     * can be saved.
-     */
-    private function getClient()
-    {
-        $client = new Google_Client();
-        $client->setApplicationName('Application TBC');
-        $client->setClientId(config('googleapi.client_id'));
-        $client->setClientSecret(config('googleapi.client_secret'));
-
-        // Or just analytics.readonly?
-        // TODO: make configurable. Maybe even support incremental authorisation too.
-        // The scopes should allow the site to request any APIs it likes.
-        $client->setScopes(['https://www.googleapis.com/auth/analytics.readonly']);
-
-        $client->setRedirectUri(URL::route('academe_gapi_callback'));
-
-        // These are necessary if offline access or auto-renewing of access tokens is needed.
-        $client->setAccessType('offline');
-        $client->setApprovalPrompt('force');
-
-        return $client;
-    }
-
-    /**
      * Start the Google API OAuth 2.0 authorisation process.
      */
     public function authorise(Request $request)
@@ -81,10 +54,8 @@ class GoogleApiController extends BaseController
         // The current user is the creator/owner.
         $auth->user_id = Auth::user()->id;
 
-        // Clear any existing tokens. TODO: move this to the model.
-        $auth->state = $auth::STATE_AUTH;
-        $auth->access_token = null;
-        $auth->refresh_token = null;
+        // Clear any existing tokens.
+        $auth->resetAuth();
 
         $auth->save();
 
@@ -97,13 +68,13 @@ class GoogleApiController extends BaseController
         // CHECKME: can the final URL be passed to Google to send back at
         // the end, rather than keeping it in the session?
 
-        $final_url = Input::get('final_url', '');
+        $final_url = Input::get($auth::FINAL_URL_PARAM_NAME, '');
 
         $request->session()->put($this->session_key_final_url, $final_url);
 
         // Now redirect to Google for authorisation.
 
-        $client = $this->getClient();
+        $client = Helper::getAuthClient();
 
         $authUrl = $client->createAuthUrl();
 
@@ -128,7 +99,7 @@ class GoogleApiController extends BaseController
         // The temporary token.
         $final_redirect = $request->session()->get($this->session_key_final_url);
 
-        $client = $this->getClient();
+        $client = Helper::getAuthClient();
 
         // TODO: check for errors here and set the final state approriately.
         $client->authenticate($code);
@@ -158,5 +129,22 @@ class GoogleApiController extends BaseController
         }
 
         return redirect($final_redirect);
+    }
+
+    /**
+     * Cancel the authorisation then redirect back.
+     */
+    public function cancel(Request $request)
+    {
+        $auth = Authorisation::currentUser()
+            ->where('state', '=', Authorisation::STATE_ACTIVE)
+            ->first();
+
+        if ($auth) {
+            $auth->cancelAuth();
+            $auth->save();
+        }
+
+        return redirect()->back();
     }
 }

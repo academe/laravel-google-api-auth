@@ -26,6 +26,9 @@ class Authorisation extends Model
     const STATE_ACTIVE     = 'active';
     const STATE_INACTIVE   = 'inactive';
 
+    // The GET parameter name to pass teh final URL into the authorise route.
+    const FINAL_URL_PARAM_NAME = 'final_url';
+
     // The default table name.
     // Overridable by config 'googleapi.authorisation_table'
     protected $table = 'gapi_authorisations';
@@ -41,6 +44,8 @@ class Authorisation extends Model
     /**
      * Only records owned by the current user.
      * Set the order too, in case additional records have got in.
+     * Only use this for online access when the user is logged in.
+     * For offline access, you wil need to know the authorisation ID.
      */
     public function scopeCurrentUser($query, $user_id = null)
     {
@@ -89,8 +94,33 @@ class Authorisation extends Model
         // period to make sure we don't operate close to the line. Having a token
         // expire in the middle of a bunch of processing is a pain to deal with,
         // so renew early to try to help there. That's a *configurable* five
-        // minutes, of course.
+        // minutes, of course. [DONE]
 
-        $this->attributes['expires_in'] = array_get($value, 'expires_in');
+        $this->attributes['expires_in'] = array_get($value, 'expires_in', 3600)
+            - Config('googleapi.expires_in_safety_margin', 0);
+    }
+
+    /**
+     * Reset the record for a new authorisation.
+     */
+    public function resetAuth()
+    {
+        $this->state = static::STATE_AUTH;
+        $this->access_token = null;
+        $this->refresh_token = null;
+        $this->created_time = null;
+        $this->expires_in = null;
+    }
+
+    /**
+     * Reset the record for a new authorisation.
+     */
+    public function cancelAuth()
+    {
+        $this->state = static::STATE_INACTIVE;
+        $this->access_token = null;
+        $this->refresh_token = null;
+        $this->created_time = null;
+        $this->expires_in = null;
     }
 }
