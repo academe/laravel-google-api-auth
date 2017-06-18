@@ -40,6 +40,37 @@ These are just rough developer usage notes.
   Just follow the instructions Google gives to add the redirect URL to the
   Google web aplication.
 
+Sampele code:
+
+Link that allows the current user to authorise the API to access Analytics,
+then return to the `/home` URL:
+
+```php
+<a href="{{ route('academe_gapi_authorise', ['final_url' => url('home')]) }}">GAPI Auth</a>
+```
+
+Get access to the API and list Analtics accounts that can be accessed:
+
+```php
+try {
+    $client = \Academe\GoogleApi\Helper::getApiClient(\Academe\GoogleApi\Helper::getCurrentUserAuth());
+    $service = new Google_Service_Analytics($client);
+    $accounts = $service->management_accountSummaries->listManagementAccountSummaries();
+} catch (Exception $e) {
+    $client = null;
+}
+
+if ($client) {
+    foreach ($accounts->getItems() as $item) {
+        // You wouldn't really echo anything in Laravel...
+        echo "Account: " . $item['name'] . " (" . $item['id'] . ") <br />";
+    }
+}
+```
+
+Once authorised, this will refresh the access token automatically, so long as
+the refresh token is not withdrawn.
+
 ## TODO
 
 * Multiple authorisations for a single user, I *think* are not permitted.
@@ -53,4 +84,7 @@ These are just rough developer usage notes.
   This will result in an exception when it is used. The action will be to
   catch the exception, attempt to renew the access token, then try the same
   action again. How we would wrap that is not clear.
+* Think of a way to handle race conditions on access token renewals. It probably
+  won't be a problem, as the renewal token can be reused, so an old access
+  token will always be caught by exception and renewed.
 

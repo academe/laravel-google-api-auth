@@ -42,16 +42,33 @@ class Authorisation extends Model
     }
 
     /**
-     * Only records owned by the current user.
+     * Only the record owned by a specified user ID.
      * Set the order too, in case additional records have got in.
      * Only use this for online access when the user is logged in.
-     * For offline access, you wil need to know the authorisation ID.
      */
-    public function scopeCurrentUser($query, $user_id = null)
+    public function scopeUser($query, $userId)
     {
         return $query
-            ->where('user_id', '=', $user_id ?: Auth::user()->id)
+            ->where('user_id', '=', $userId)
             ->orderBy('id');
+    }
+
+    /**
+     * Only the record owned by the current user.
+     */
+    public function scopeCurrentUser($query)
+    {
+        return $this->user(Auth::user()->id);
+    }
+
+    public function scopeIsActive($query)
+    {
+        return $query->where('state', '=', static::STATE_ACTIVE);
+    }
+
+    public function scopeIsAuthorising($query)
+    {
+        return $query->where('state', '=', Authorisation::STATE_AUTH);
     }
 
     /**

@@ -4,10 +4,8 @@ namespace Academe\GoogleApi;
 
 //use Illuminate\Routing\Controller as BaseController;
 use Academe\GoogleApi\Models\Authorisation;
-//use Illuminate\Http\Request;
 use Google_Client;
 //use Session;
-//use Config;
 //use Input;
 //use Auth;
 //use URL;
@@ -47,20 +45,86 @@ class Helper
     /**
      * Get an instance of a client ready to use for accessing the Google services.
      */
-    public static function getApiClient()
+    public static function getApiClient(Authorisation $auth)
     {
-        $client = static::getAuthClient();
+        // TODO: the authorisation record must be active before we can use it.
 
-        $auth = Authorisation::currentUser()
-            ->where('state', '=', Authorisation::STATE_ACTIVE)
-            ->firstOrFail();
+        $client = static::getAuthClient();
 
         $client->setAccessToken($auth->json_token);
 
         // Set a callback for storing the new token on renewal.
         // This may be called offline, so it needs to know the auth ID.
-        //$client->setTokenCallback(...);
+        $client->setTokenCallback(function($cacheKey, $accessToken) use ($auth) {
+            // Refresh from the database. Not sure if this is necessary or desirable.
+            $auth = Authorisation::find($auth->id);
+
+            // Set the new access token.
+            $auth->access_token = $accessToken;
+
+            // Set the new token created time.
+            // We really need to get this from the Google API Client, but it is
+            // not obviously available. It may be in the cache, which is why the
+            // cacheKey is provided.
+            // We also assume the expires_in has not changed since the initial
+            // authorisation.
+            $auth->created_time = time();
+
+            $auth->save();
+        });
 
         return $client;
+    }
+
+    /**
+     * Get the authorisation for a user, defaulting to the current user.
+     */
+    public static function getUserAuth($userId)
+    {
+        return Authorisation::User($userId)->first();
+    }
+
+    public static function getCurrentUserAuth()
+    {
+        return Authorisation::CurrentUser()->first();
+    }
+
+    /**
+     * Cancel an authorisation by ID.
+     */
+    public static function cancelAuth($auth_id)
+    {
+        $auth = Authorisation::where('id', '=', $auth_id)
+            ->where('state', '=', Authorisation::STATE_ACTIVE)
+            ->first();
+
+        if ($auth) {
+            $auth->cancelAuth();
+            $auth->save();
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Explicitly refresh the access token for an authorisation.
+     * TODO: think about this one. We need a client and an auth ID.
+     * Will only work if there is a refresh token.
+     */
+    public static function refreshToken($auth_id)
+    {
+        $auth = Authorisation::where('id', '=', $auth_id)
+            ->whereIn('state', [Authorisation::STATE_ACTIVE, Authorisation::STATE_INACTIVE])
+            ->first();
+
+        if ($auth) {
+            $auth->save();
+
+            return true;
+        }
+
+        return false;
     }
 }

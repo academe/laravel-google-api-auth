@@ -16,11 +16,6 @@ use URL;
 class GoogleApiController extends BaseController
 {
     /**
-     * The session key for the ID of the authorisation being processed.
-     */
-    protected $session_key_auth_id = 'gapi_auth_session_id';
-
-    /**
      * The session key for the final redirect URL after authorisation.
      */
     protected $session_key_final_url = 'gapi_auth_final_url';
@@ -61,7 +56,7 @@ class GoogleApiController extends BaseController
 
         // Save the ID in the session so the callback knows where to look.
 
-        $request->session()->put($this->session_key_auth_id, $auth->id);
+        //$request->session()->put($this->session_key_auth_id, $auth->id);
 
         // Set an optional final redirect URL so we can get back to
         // where we requested the authorisation from.
@@ -89,8 +84,7 @@ class GoogleApiController extends BaseController
     {
         // Get the authorisation record waitng for the callback.
         $auth = Authorisation::currentUser()
-            ->where('id', '=', $request->session()->get($this->session_key_auth_id))
-            ->where('state', '=', Authorisation::STATE_AUTH)
+            ->IsAuthorising()
             ->firstOrFail();
 
         // The temporary token.
@@ -110,7 +104,8 @@ class GoogleApiController extends BaseController
         // Store the token details back in the model.
         $auth->json_token = $token_details;
 
-        //
+        // Set active or maybe inactive if we hit an error fetching the
+        // access token above.
         $auth->state = $auth::STATE_ACTIVE;
 
         $auth->save();
@@ -137,7 +132,7 @@ class GoogleApiController extends BaseController
     public function cancel(Request $request)
     {
         $auth = Authorisation::currentUser()
-            ->where('state', '=', Authorisation::STATE_ACTIVE)
+            ->isActive()
             ->first();
 
         if ($auth) {
