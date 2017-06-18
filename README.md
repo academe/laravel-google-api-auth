@@ -49,7 +49,7 @@ then return to the `/home` URL:
 <a href="{{ route('academe_gapi_authorise', ['final_url' => url('home')]) }}">GAPI Auth</a>
 ```
 
-Get access to the API and list Analtics accounts that can be accessed:
+Get access to the API and list Analytics accounts that can be accessed:
 
 ```php
 try {
@@ -87,4 +87,5 @@ the refresh token is not withdrawn.
 * Think of a way to handle race conditions on access token renewals. It probably
   won't be a problem, as the renewal token can be reused, so an old access
   token will always be caught by exception and renewed.
+* Handle the scope properly. It is hard-coded ATM to Analytics.
 

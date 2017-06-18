@@ -61,14 +61,19 @@ class Authorisation extends Model
         return $this->user(Auth::user()->id);
     }
 
+    public function scopeIsAuthorising($query)
+    {
+        return $query->where('state', '=', Authorisation::STATE_AUTH);
+    }
+
     public function scopeIsActive($query)
     {
         return $query->where('state', '=', static::STATE_ACTIVE);
     }
 
-    public function scopeIsAuthorising($query)
+    public function scopeIsInactive($query)
     {
-        return $query->where('state', '=', Authorisation::STATE_AUTH);
+        return $query->where('state', '=', static::STATE_INACTIVE);
     }
 
     /**
