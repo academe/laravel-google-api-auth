@@ -85,8 +85,8 @@ the refresh token is not withdrawn.
   user. This assumes there is only one set of credentials (a good assumption
   for now, but may change later) so it means each user should only have one
   record in the authorisations table.
-* Method to cancel an authorisation. Try cancelling it reotely (which may or
-  may not succeed) then just remove the local access and renewal tokens.
+* Method to revoke an authorisation. Try revoking it through the API (which
+  may or may not succeed) then just remove the local access and renewal tokens.
 * Some way to handle an expired access token that we did not renew in time.
   This will result in an exception when it is used. The action will be to
   catch the exception, attempt to renew the access token, then try the same
@@ -101,4 +101,20 @@ the refresh token is not withdrawn.
   * If the scope of an authorisation is changed, i.e. extended, then it needs to
     be authorised again. We will only know it has extended by keeping a record of
     the previous scopes. Google calls this incremental authorisation.
+* If a user can have multiple authorisations with different Google accounts,
+  then how do we ensure this? For example, a user authorises two different areas
+  of the app inadvertently using the same Google account. How do we detect this
+  and raise it as an error? We need a unique ID of the Google user who
+  authenticated. We are not saving the Google user ID and can work on looking
+  for duplicates later. The application is best placed for deciding what to do
+  with duplicates - perhaps deleting the older one and linking the newer one
+  in its place.  
+  
+  Bear in mind also that two different application users could be
+  the same physical user and could authorise the same Google account using
+  the separate users. Note that we cannot detect the user doing this in advance;
+  by the time we know a user has authorised the same account twice (thus
+  invalidating the first access token and renewal token) it is done and so
+  only remedial action is possible (e.g informing the user of the invalidated
+  authorisation).
 

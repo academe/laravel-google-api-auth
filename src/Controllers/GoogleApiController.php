@@ -80,6 +80,13 @@ class GoogleApiController extends BaseController
             $auth->addScope($add_scope);
         }
 
+        // These two scopes are needed to get access to the Google
+        // user ID. We need that for looking for duplicate OAuth
+        // authorisations.
+
+        $auth->addScope('openid');
+        $auth->addScope('email');
+
         $auth->save();
 
         // Set an optional final redirect URL so we can get back to
@@ -126,6 +133,11 @@ class GoogleApiController extends BaseController
 
         // Store the token details back in the model.
         $auth->json_token = $token_details;
+
+        // If the id_token is availabe, then decode it and save pertinent details.
+        if (isset($token_details['id_token'])) {
+            $auth->idToken = $client->verifyIdToken();
+        }
 
         // Set active or maybe inactive if we hit an error fetching the
         // access token above.

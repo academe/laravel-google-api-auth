@@ -120,6 +120,19 @@ class Authorisation extends Model
     }
 
     /**
+     * If an idToken array is available then distribute relavent data from that
+     * to appropriate columns. We are mainly interested in the Google user ID, so we
+     * can tell if a user has [erroneously] authorised twice in this application.
+     */
+    public function setIdTokenAttribute($value)
+    {
+        if (is_array($value)) {
+            $this->attributes['google_user_id'] = array_get($value, 'sub', $this->google_user_id);
+            $this->attributes['google_email'] = array_get($value, 'email', $this->google_email);
+        }
+    }
+
+    /**
      * Get the scopes, an array of string values.
      */
     public function getScopesAttribute()
@@ -167,7 +180,9 @@ class Authorisation extends Model
     }
 
     /**
-     * Reset the record for a new authorisation.
+     * Revoke the record for a new authorisation.
+     * See SO example to revoke the token with Google:
+     * https://stackoverflow.com/questions/31515231/revoke-google-access-token-in-php
      */
     public function revokeAuth()
     {

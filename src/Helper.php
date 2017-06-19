@@ -42,7 +42,6 @@ class Helper
         // need to store them and reuse them each time we access the API or (perhaps)
         // just refresh the token.
 
-        //$client->setScopes([Google_Service_Analytics::ANALYTICS_READONLY]);
         $client->setScopes($auth->scopes);
 
         // With multiple authorisations per user, this URL will need to contain
@@ -71,7 +70,7 @@ class Helper
         // This may be called offline, so it needs to know the auth ID.
         $client->setTokenCallback(function($cacheKey, $accessToken) use ($auth) {
             // Refresh from the database. Not sure if this is necessary or desirable.
-            $auth = Authorisation::find($auth->id);
+            //$auth = Authorisation::find($auth->id);
 
             // Set the new access token.
             $auth->access_token = $accessToken;

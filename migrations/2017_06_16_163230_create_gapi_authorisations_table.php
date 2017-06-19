@@ -49,6 +49,12 @@ class CreateGapiAuthorisationsTable extends Migration
             // This will be a JSON-encoded array.
             $table->text('scope')->nullable();
 
+            // The unique Google user ID, so we can recognise multiple authorisations
+            // against the same user (effectively authorisation records that can be merged).
+            $table->string('google_user_id', 191)->nullable()->index();
+
+            $table->string('google_email', 250)->nullable();
+
             $table->timestamps();
         });
     }
