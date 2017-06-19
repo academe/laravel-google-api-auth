@@ -49,6 +49,13 @@ then return to the `/home` URL:
 <a href="{{ route('academe_gapi_authorise', ['final_url' => url('home')]) }}">GAPI Auth</a>
 ```
 
+You can set and add scopes too. For example:
+
+```php
+// Or use "add_scopes" to add to the scopes already authenticated.
+<a href="{{ route('academe_gapi_authorise', ['scopes' => [Google_Service_Analytics::ANALYTICS_READONLY]]) }}">GAPI Auth</a>
+```
+
 Get access to the API and list Analytics accounts that can be accessed:
 
 ```php

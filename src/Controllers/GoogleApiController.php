@@ -63,7 +63,7 @@ class GoogleApiController extends BaseController
         // Set the required scopes.
         // Passed in as a GET parameter, they will override the current scopes
         // for the authorisation, or default to the config setting.
-        $scopes = Input::get(static::SCOPES_PARAM_NAME, $auth->scopes);
+        $scopes = (array)Input::get(static::SCOPES_PARAM_NAME, $auth->scopes);
 
         if (empty($scopes)) {
             $scopes = config('googleapi.default_scopes', []);
