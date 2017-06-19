@@ -45,6 +45,10 @@ class CreateGapiAuthorisationsTable extends Migration
             // The period the access_token will last, in seconds.
             $table->integer('expires_in')->unsigned()->nullable();
 
+            // The scope of the current authorisation.
+            // This will be a JSON-encoded array.
+            $table->text('scope')->nullable();
+
             $table->timestamps();
         });
     }

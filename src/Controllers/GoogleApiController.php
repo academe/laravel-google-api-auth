@@ -5,6 +5,7 @@ namespace Academe\GoogleApi\Controllers;
 use Illuminate\Routing\Controller as BaseController;
 use Academe\GoogleApi\Models\Authorisation;
 use Academe\GoogleApi\Helper;
+use Google_Service_Analytics;
 use Illuminate\Http\Request;
 use Google_Client;
 use Session;
@@ -15,6 +16,13 @@ use URL;
 
 class GoogleApiController extends BaseController
 {
+    // The GET parameter name to pass teh final URL into the authorise route.
+    const FINAL_URL_PARAM_NAME = 'final_url';
+
+    // The scopes GET parameter name when requesting authorisation.
+    const SCOPES_PARAM_NAME = 'scopes';
+    const ADD_SCOPES_PARAM_NAME = 'add_scopes';
+
     /**
      * The session key for the final redirect URL after authorisation.
      */
@@ -52,24 +60,39 @@ class GoogleApiController extends BaseController
         // Clear any existing tokens.
         $auth->resetAuth();
 
+        // Set the required scopes.
+        // Passed in as a GET parameter, they will override the current scopes
+        // for the authorisation, or default to the config setting.
+        $scopes = Input::get(static::SCOPES_PARAM_NAME, $auth->scopes);
+
+        if (empty($scopes)) {
+            $scopes = config('googleapi.default_scopes', []);
+        }
+
+        $auth->scopes = $scopes;
+
+        // Additional scopes can be added during an authentication, adding to
+        // what is already authorised.
+
+        $add_scopes = (array)Input::get(static::ADD_SCOPES_PARAM_NAME, []);
+
+        foreach($add_scopes as $add_scope) {
+            $auth->addScope($add_scope);
+        }
+
         $auth->save();
-
-        // Save the ID in the session so the callback knows where to look.
-
-        //$request->session()->put($this->session_key_auth_id, $auth->id);
 
         // Set an optional final redirect URL so we can get back to
         // where we requested the authorisation from.
         // CHECKME: can the final URL be passed to Google to send back at
         // the end, rather than keeping it in the session?
 
-        $final_url = Input::get($auth::FINAL_URL_PARAM_NAME, '');
-
+        $final_url = Input::get(static::FINAL_URL_PARAM_NAME, '');
         $request->session()->put($this->session_key_final_url, $final_url);
 
         // Now redirect to Google for authorisation.
 
-        $client = Helper::getAuthClient();
+        $client = Helper::getAuthClient($auth);
 
         $authUrl = $client->createAuthUrl();
 
@@ -93,7 +116,7 @@ class GoogleApiController extends BaseController
         // The temporary token.
         $final_redirect = $request->session()->get($this->session_key_final_url);
 
-        $client = Helper::getAuthClient();
+        $client = Helper::getAuthClient($auth);
 
         // TODO: check for errors here and set the final state approriately.
         $client->authenticate($code);
@@ -127,16 +150,18 @@ class GoogleApiController extends BaseController
     }
 
     /**
-     * Cancel the authorisation then redirect back.
+     * Revoke the authorisation then redirect back.
      */
-    public function cancel(Request $request)
+    public function revoke(Request $request)
     {
+        // Users only have one authorisation at this time, so no
+        // context needs to be given.
         $auth = Authorisation::currentUser()
             ->isActive()
             ->first();
 
         if ($auth) {
-            $auth->cancelAuth();
+            $auth->revokeAuth();
             $auth->save();
         }
 

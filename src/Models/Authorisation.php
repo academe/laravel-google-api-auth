@@ -10,10 +10,10 @@ namespace Academe\GoogleApi\Models;
  * + user_id - the laravel user who created/owns the authorisation.
  * + access_token - the current active token
  * + refresh_token - the long-term token for refreshing the auth token
- * + created_time - the (local) time the token was created
- * + expires_in - the time after the created_time that the token will expire
- * + state - TBC
- * + TBC some context details for the authorisation give, user details etc.
+ * + created_time - the (local) time the token was created (unix timestamp, integer)
+ * + expires_in - the time after the created_time that the token will expire, in seconds
+ * + state - auth, active, inactive
+ * + scope - the current scope that has been authorised
  */
 
 use Illuminate\Database\Eloquent\Model;
@@ -25,9 +25,6 @@ class Authorisation extends Model
     const STATE_AUTH       = 'auth';
     const STATE_ACTIVE     = 'active';
     const STATE_INACTIVE   = 'inactive';
-
-    // The GET parameter name to pass teh final URL into the authorise route.
-    const FINAL_URL_PARAM_NAME = 'final_url';
 
     // The default table name.
     // Overridable by config 'googleapi.authorisation_table'
@@ -123,6 +120,41 @@ class Authorisation extends Model
     }
 
     /**
+     * Get the scopes, an array of string values.
+     */
+    public function getScopesAttribute()
+    {
+        if ($array = json_decode($this->scope, true)) {
+            return $array;
+        } else {
+            return [];
+        }
+    }
+
+    /**
+     * Set the scopes, an array of string values.
+     */
+    public function setScopesAttribute(array $value)
+    {
+        $this->attributes['scope'] = json_encode($value);
+    }
+
+    /**
+     * Add a single scope to the list we already have.
+     */
+    public function addScope($scope)
+    {
+        if (! $this->hasScope($scope)) {
+            $this->scopes = array_merge($this->scopes, [$scope]);
+        }
+    }
+
+    public function hasScope($scope)
+    {
+        return in_array($scope, $this->scopes);
+    }
+
+    /**
      * Reset the record for a new authorisation.
      */
     public function resetAuth()
@@ -137,12 +169,18 @@ class Authorisation extends Model
     /**
      * Reset the record for a new authorisation.
      */
-    public function cancelAuth()
+    public function revokeAuth()
     {
-        $this->state = static::STATE_INACTIVE;
-        $this->access_token = null;
-        $this->refresh_token = null;
-        $this->created_time = null;
-        $this->expires_in = null;
+        if ($this->isActive()) {
+            $this->state = static::STATE_INACTIVE;
+            $this->access_token = null;
+            $this->refresh_token = null;
+            $this->created_time = null;
+            $this->expires_in = null;
+
+            return true;
+        }
+
+        return false;
     }
 }

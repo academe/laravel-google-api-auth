@@ -88,4 +88,10 @@ the refresh token is not withdrawn.
   won't be a problem, as the renewal token can be reused, so an old access
   token will always be caught by exception and renewed.
 * Handle the scope properly. It is hard-coded ATM to Analytics.
+* Store the context in the authorisation model. Two reasons:
+  * The context may be different for each user authorisatin, so we need to know
+    what it is for each client we create.
+  * If the scope of an authorisation is changed, i.e. extended, then it needs to
+    be authorised again. We will only know it has extended by keeping a record of
+    the previous scopes. Google calls this incremental authorisation.
 

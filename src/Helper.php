@@ -4,6 +4,7 @@ namespace Academe\GoogleApi;
 
 //use Illuminate\Routing\Controller as BaseController;
 use Academe\GoogleApi\Models\Authorisation;
+use Google_Service_Analytics;
 use Google_Client;
 //use Session;
 //use Input;
@@ -18,21 +19,34 @@ class Helper
      * set $client->setAccessToken($auth->json_token);
      * Also we need to register a callback to catch token renewals so they
      * can be saved.
-     * TODO: Move this to a helper class.
+     * TODO: provide a hook to allow any additional parameters to be set on
+     * the API client, as there are plenty of useful things that can be added,
+     * such as authorisation prompts and login hints.
      */
-    public static function getAuthClient()
+    public static function getAuthClient(Authorisation $auth)
     {
         $client = new Google_Client();
 
-        $client->setApplicationName('Application TBC');
+        $client->setApplicationName(config('googleapi.application_name'));
         $client->setClientId(config('googleapi.client_id'));
         $client->setClientSecret(config('googleapi.client_secret'));
 
         // Or just analytics.readonly?
         // TODO: make configurable. Maybe even support incremental authorisation too.
         // The scopes should allow the site to request any APIs it likes.
-        $client->setScopes(['https://www.googleapis.com/auth/analytics.readonly']);
+        // Can also use addScope() to add them one at a time.
+        // If the scope of the auth changes (and it could if this is dynamic) then it
+        // may need re-authorising. So perhaps we need to keep a list of scopes
+        // in the authorisation record so we know when the scope is being extended.
+        // In fact, scopes could be different for each suer authurisation, so we definitely
+        // need to store them and reuse them each time we access the API or (perhaps)
+        // just refresh the token.
 
+        //$client->setScopes([Google_Service_Analytics::ANALYTICS_READONLY]);
+        $client->setScopes($auth->scopes);
+
+        // With multiple authorisations per user, this URL will need to contain
+        // some additional context to identify which authorisation is being processed.
         $client->setRedirectUri(route('academe_gapi_callback'));
 
         // These are necessary if offline access or auto-renewing of access tokens is needed.
@@ -49,7 +63,7 @@ class Helper
     {
         // TODO: the authorisation record must be active before we can use it.
 
-        $client = static::getAuthClient();
+        $client = static::getAuthClient($auth);
 
         $client->setAccessToken($auth->json_token);
 
@@ -90,30 +104,11 @@ class Helper
     }
 
     /**
-     * Cancel an authorisation by ID.
-     */
-    public static function cancelAuth($auth_id)
-    {
-        $auth = Authorisation::where('id', '=', $auth_id)
-            ->where('state', '=', Authorisation::STATE_ACTIVE)
-            ->first();
-
-        if ($auth) {
-            $auth->cancelAuth();
-            $auth->save();
-
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
      * Explicitly refresh the access token for an authorisation.
      * TODO: think about this one. We need a client and an auth ID.
      * Will only work if there is a refresh token.
      */
-    public static function refreshToken($auth_id)
+    public static function refreshToken(Authorisation $auth)
     {
         $auth = Authorisation::where('id', '=', $auth_id)
             ->whereIn('state', [Authorisation::STATE_ACTIVE, Authorisation::STATE_INACTIVE])

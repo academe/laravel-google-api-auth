@@ -15,6 +15,6 @@ Route::group(['middleware' => 'web'], function() {
         ->name('academe_gapi_callback');
 
     // Log out of Google, i.e. discard the access tokens.
-    Route::get('gapi/oauth2cancel', 'Academe\GoogleApi\Controllers\GoogleApiController@cancel')
+    Route::get('gapi/oauth2cancel', 'Academe\GoogleApi\Controllers\GoogleApiController@revoke')
         ->name('academe_gapi_cancel');
 });
