@@ -84,7 +84,12 @@ the refresh token is not withdrawn.
   So think about invalidating any authorisations already in effect for that
   user. This assumes there is only one set of credentials (a good assumption
   for now, but may change later) so it means each user should only have one
-  record in the authorisations table.
+  record in the authorisations table.  
+    
+  Update: it seems that each user can have about 25 active tokens, so a user
+  *can* authorise the same application multiple times. We won't prevent this
+  from happenening usng this package, *but* we will provide the facility to
+  find multiple authorisations, so they can be merged (discarding the oldest).
 * Method to revoke an authorisation. Try revoking it through the API (which
   may or may not succeed) then just remove the local access and renewal tokens.
 * Some way to handle an expired access token that we did not renew in time.
@@ -117,4 +122,5 @@ the refresh token is not withdrawn.
   invalidating the first access token and renewal token) it is done and so
   only remedial action is possible (e.g informing the user of the invalidated
   authorisation).
-
+* If a user can have multiple authorisations, then give each a name so they can
+  be uniquely identyified. This is a new database column. Default it to "Default".

@@ -9,6 +9,7 @@ return [
     'client_id'     => env('GA_API_CLIENT_ID'),
     'client_secret' => env('GA_API_CLIENT_SECRET'),
 
+    // The table for all the authorisation details.
     'authorisation_table' => 'gapi_authorisations',
 
     // The name of the API Application.

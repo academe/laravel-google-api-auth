@@ -1,8 +1,9 @@
 <?php
 
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
+use Academe\GoogleApi\Models\Authorisation;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
 class CreateGapiAuthorisationsTable extends Migration
 {
@@ -23,6 +24,13 @@ class CreateGapiAuthorisationsTable extends Migration
             // We are assuming the user ID is numeric, and not a UUID.
             $table->integer('user_id')->unsigned();
             $table->foreign('user_id')->references('id')->on('users');
+
+            // The name of this authorisation instance, to distinguish
+            // between authorisations for a laravel user.
+            $table->string('name', 100)->default(Authorisation::DEFAULT_NAME);
+
+            // Names are unique for each laravel user.
+            $table->unique(['user_id', 'name']);
 
             // States:
             // + "auth" - user has been sent to Google to authorise

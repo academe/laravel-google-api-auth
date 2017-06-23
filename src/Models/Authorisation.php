@@ -26,12 +26,19 @@ class Authorisation extends Model
     const STATE_ACTIVE     = 'active';
     const STATE_INACTIVE   = 'inactive';
 
+    // The name if name of the authorisation provided.
+    const DEFAULT_NAME = 'default';
+
     // The default table name.
     // Overridable by config 'googleapi.authorisation_table'
     protected $table = 'gapi_authorisations';
 
-    public function __construct() {
-        parent::__construct();
+    // Default values.
+    //protected $fillable = ['name'];
+    protected $guarded = [];
+
+    public function __construct(array $attributes = []) {
+        parent::__construct($attributes);
 
         // Set the table name from configuration, so we can play nice
         // with the developer who may need a different name.
@@ -48,6 +55,15 @@ class Authorisation extends Model
         return $query
             ->where('user_id', '=', $userId)
             ->orderBy('id');
+    }
+
+    /**
+     * Fetch by name, defaulting to the default name if none supplied.
+     */
+    public function scopeName($query, $name)
+    {
+        return $query
+            ->where('name', '=', (!empty($name) ? $name : static::DEFAULT_NAME));
     }
 
     /**
@@ -168,9 +184,9 @@ class Authorisation extends Model
     }
 
     /**
-     * Reset the record for a new authorisation.
+     * Initialise the record for a new authorisation.
      */
-    public function resetAuth()
+    public function initAuth()
     {
         $this->state = static::STATE_AUTH;
         $this->access_token = null;

@@ -91,27 +91,27 @@ class Helper
 
     /**
      * Get the authorisation for a user, defaulting to the current user.
+     * TODO: make it selectable by name or ID.
      */
-    public static function getUserAuth($userId)
+    public static function getUserAuth($userId, $name = null)
     {
-        return Authorisation::User($userId)->first();
+        return Authorisation::User($userId)->name($name)->first();
     }
 
-    public static function getCurrentUserAuth()
+    public static function getCurrentUserAuth($name = null)
     {
-        return Authorisation::CurrentUser()->first();
+        return Authorisation::CurrentUser()->name($name)->first();
     }
 
     /**
      * Explicitly refresh the access token for an authorisation.
-     * TODO: think about this one. We need a client and an auth ID.
      * Will only work if there is a refresh token.
      */
     public static function refreshToken(Authorisation $auth)
     {
-        $auth = Authorisation::where('id', '=', $auth_id)
-            ->whereIn('state', [Authorisation::STATE_ACTIVE, Authorisation::STATE_INACTIVE])
-            ->first();
+        //$auth = Authorisation::where('id', '=', $auth_id)
+        //    ->whereIn('state', [Authorisation::STATE_ACTIVE, Authorisation::STATE_INACTIVE])
+        //    ->first();
 
         if ($auth) {
             $auth->save();

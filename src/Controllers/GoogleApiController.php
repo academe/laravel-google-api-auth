@@ -19,6 +19,9 @@ class GoogleApiController extends BaseController
     // The GET parameter name to pass teh final URL into the authorise route.
     const FINAL_URL_PARAM_NAME = 'final_url';
 
+    // Parameter name for the name of the authotisation.
+    const AUTH_NAME_PARAM_NAME = 'name';
+
     // The scopes GET parameter name when requesting authorisation.
     const SCOPES_PARAM_NAME = 'scopes';
     const ADD_SCOPES_PARAM_NAME = 'add_scopes';
@@ -27,6 +30,11 @@ class GoogleApiController extends BaseController
      * The session key for the final redirect URL after authorisation.
      */
     protected $session_key_final_url = 'gapi_auth_final_url';
+
+    /**
+     * The session key for the final redirect URL after authorisation.
+     */
+    protected $session_key_name = 'gapi_auth_name';
 
     /**
      * Create a new controller instance.
@@ -44,6 +52,11 @@ class GoogleApiController extends BaseController
 
     /**
      * Start the Google API OAuth 2.0 authorisation process.
+     * GET parameters:
+     * + name       - The name of the authorisation.
+     * + final_url  - Where to take the user after authorisation.
+     * + scopes     - Array of scopes to use.
+     * + add_scopes - Array of additional scopes to add to what is there.
      */
     public function authorise(Request $request)
     {
@@ -52,13 +65,20 @@ class GoogleApiController extends BaseController
         // With just one set of credentials, each user can have only one
         // active authorisation.
 
-        $auth = Authorisation::currentUser()->first() ?: new Authorisation();
+        $name = Input::get(static::AUTH_NAME_PARAM_NAME, Authorisation::DEFAULT_NAME);
 
         // The current user is the creator/owner.
-        $auth->user_id = Auth::user()->id;
 
-        // Clear any existing tokens.
-        $auth->resetAuth();
+        $auth = Authorisation::firstOrNew([
+            'user_id' => Auth::user()->id,
+            'name' => $name,
+        ]);
+
+        $name = $auth->name;
+
+        // Clear any existing tokens in this record amd prepare
+        // it for the callback.
+        $auth->initAuth();
 
         // Set the required scopes.
         // Passed in as a GET parameter, they will override the current scopes
@@ -80,9 +100,8 @@ class GoogleApiController extends BaseController
             $auth->addScope($add_scope);
         }
 
-        // These two scopes are needed to get access to the Google
-        // user ID. We need that for looking for duplicate OAuth
-        // authorisations.
+        // These two scopes are needed to get access to the Google user ID.
+        // We need that for looking for duplicate OAuth authorisations.
 
         $auth->addScope('openid');
         $auth->addScope('email');
@@ -91,11 +110,13 @@ class GoogleApiController extends BaseController
 
         // Set an optional final redirect URL so we can get back to
         // where we requested the authorisation from.
-        // CHECKME: can the final URL be passed to Google to send back at
-        // the end, rather than keeping it in the session?
 
         $final_url = Input::get(static::FINAL_URL_PARAM_NAME, '');
         $request->session()->put($this->session_key_final_url, $final_url);
+
+        // Send the name through to the callback, so we can find this instance.
+
+        $request->session()->put($this->session_key_name, $name);
 
         // Now redirect to Google for authorisation.
 
@@ -112,8 +133,11 @@ class GoogleApiController extends BaseController
      */
     public function callback(Request $request)
     {
+        $name = $request->session()->get($this->session_key_name);
+
         // Get the authorisation record waitng for the callback.
         $auth = Authorisation::currentUser()
+            ->name($name)
             ->IsAuthorising()
             ->firstOrFail();
 
@@ -154,21 +178,30 @@ class GoogleApiController extends BaseController
                 ? route(Config::get('googleapi.default_final_route'))
                 : url(Config::get('googleapi.default_final_path'))
             );
-        } else {
-            $request->session()->forget($this->session_key_final_url);
         }
+
+        $request->session()->forget($this->session_key_name);
+        $request->session()->forget($this->session_key_final_url);
 
         return redirect($final_redirect);
     }
 
     /**
      * Revoke the authorisation then redirect back.
+     * We really should try to revoke the token remotely with
+     * Google first, so we havemore control over which tokens are
+     * active. If we leae too many tokens just hanging there, we
+     * could end up with the older ones (possibly the wrong ones)
+     * being automatically revoked by Google.
      */
     public function revoke(Request $request)
     {
+        $name = Input::get(static::AUTH_NAME_PARAM_NAME, Authorisation::DEFAULT_NAME);
+
         // Users only have one authorisation at this time, so no
         // context needs to be given.
         $auth = Authorisation::currentUser()
+            ->name($name)
             ->isActive()
             ->first();
 
