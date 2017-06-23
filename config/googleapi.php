@@ -29,4 +29,7 @@ return [
     // The default scopes if none provided to the authorise page,
     // and none is already set for the authorisation record.
     'default_scopes' => [Google_Service_Analytics::ANALYTICS_READONLY],
+
+    // The user model.
+    'user_model' => 'App\Models\User',
 ];

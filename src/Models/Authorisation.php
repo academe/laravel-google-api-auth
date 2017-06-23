@@ -50,7 +50,7 @@ class Authorisation extends Model
      * Set the order too, in case additional records have got in.
      * Only use this for online access when the user is logged in.
      */
-    public function scopeUser($query, $userId)
+    public function scopeOwner($query, $userId)
     {
         return $query
             ->where('user_id', '=', $userId)
@@ -71,7 +71,7 @@ class Authorisation extends Model
      */
     public function scopeCurrentUser($query)
     {
-        return $this->user(Auth::user()->id);
+        return $this->owner(Auth::user()->id);
     }
 
     public function scopeIsAuthorising($query)
@@ -214,4 +214,11 @@ class Authorisation extends Model
 
         return false;
     }
-}
+
+    /**
+     * Get the user that owns this authorisation.
+     */
+    public function user()
+    {
+        return $this->belongsTo(config('googleapi.user_model'));
+    }}
