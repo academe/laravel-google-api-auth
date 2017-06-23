@@ -65,9 +65,6 @@ class Helper
         // This may be called offline, so it needs to know the auth ID.
 
         $client->setTokenCallback(function($cacheKey, $accessToken) use ($auth) {
-            // Refresh from the database. Not sure if this is necessary or desirable.
-            //$auth = Authorisation::find($auth->id);
-
             // Set the new access token.
             $auth->access_token = $accessToken;
 

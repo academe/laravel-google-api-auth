@@ -81,14 +81,24 @@ if ($client) {
 ```
 
 Once authorised, this will refresh the access token automatically, so long as
-the refresh token is not withdrawn.
+the refresh token is not revoked.
 
-## TODO
+## Other Notes
 
+* When a laravel user provide authorisation, we grab the Google user ID and their
+  email address. This ID is unique to that Google account. With this we can find
+  any Google user that is authorised more than once. While this is permitted,
+  it does use up a limited number of tokens that Google will provide, so this
+  allows any duplicates to be found and merged.
 * Each user can have about 25 active tokens, so a user
   can authorise the same application multiple times. We won't prevent this
   from happenening usng this package, *but* we provide a "name" to be able to
   distinguish between each authorisation instance.
+* The scopes are stored against each authorisation, so it can be extended if
+  needed, with a reauthorisation to provide incremental authorisation.
+
+## TODO
+
 * Some way to handle an expired access token that we did not renew in time.
   This will result in an exception when it is used. The action will be to
   catch the exception, attempt to renew the access token, then try the same
@@ -96,15 +106,10 @@ the refresh token is not withdrawn.
 * Think of a way to handle race conditions on access token renewals. It probably
   won't be a problem, as the renewal token can be reused, so an old access
   token will always be caught by exception and renewed.
-* Handle the scope properly. It is hard-coded ATM to Analytics.
-* Store the context in the authorisation model. Two reasons:
-  * The context may be different for each user authorisatin, so we need to know
-    what it is for each client we create.
-  * If the scope of an authorisation is changed, i.e. extended, then it needs to
-    be authorised again. We will only know it has extended by keeping a record of
-    the previous scopes. Google calls this incremental authorisation.
-* When a laravel user provide authorisation, we grab the Google user ID and their
-  email address. This ID is unique to that Google account. With this we can find
-  any Google user that is authorised more than once. While this is permitted,
-  it does use up a limited number of tokens that Google will provide, so this
-  allows any duplicates to be found and merged.
+* The 'offline' and 'force' parameters foce a new reneal token to be generated on
+  every authorisartion. There may be times when the authorisation is not needed
+  for offlne purposes. There may also be times when a "force" is not needed, and
+  the current refresh token can continue to be used. If the scope changes, e.g. is
+  added to, then a force is needed. Look into this.
+* A hook into the client creation (a factory?) will allow a client to be
+  customised on creation.
