@@ -56,6 +56,11 @@ You can set and add scopes too. For example:
 <a href="{{ route('academe_gapi_authorise', ['scopes' => [Google_Service_Analytics::ANALYTICS_READONLY]]) }}">GAPI Auth</a>
 ```
 
+All authorisation instances have a name, which is a unique list for each laravel user.
+The default name is "default".
+Specify a name when authorisation by adding the `'name' => 'name meanngful to the context'`
+parameter to the authorise route.
+
 Get access to the API and list Analytics accounts that can be accessed:
 
 ```php
@@ -80,18 +85,10 @@ the refresh token is not withdrawn.
 
 ## TODO
 
-* Multiple authorisations for a single user, I *think* are not permitted.
-  So think about invalidating any authorisations already in effect for that
-  user. This assumes there is only one set of credentials (a good assumption
-  for now, but may change later) so it means each user should only have one
-  record in the authorisations table.  
-    
-  Update: it seems that each user can have about 25 active tokens, so a user
-  *can* authorise the same application multiple times. We won't prevent this
-  from happenening usng this package, *but* we will provide the facility to
-  find multiple authorisations, so they can be merged (discarding the oldest).
-* Method to revoke an authorisation. Try revoking it through the API (which
-  may or may not succeed) then just remove the local access and renewal tokens.
+* Each user can have about 25 active tokens, so a user
+  can authorise the same application multiple times. We won't prevent this
+  from happenening usng this package, *but* we provide a "name" to be able to
+  distinguish between each authorisation instance.
 * Some way to handle an expired access token that we did not renew in time.
   This will result in an exception when it is used. The action will be to
   catch the exception, attempt to renew the access token, then try the same
@@ -106,21 +103,8 @@ the refresh token is not withdrawn.
   * If the scope of an authorisation is changed, i.e. extended, then it needs to
     be authorised again. We will only know it has extended by keeping a record of
     the previous scopes. Google calls this incremental authorisation.
-* If a user can have multiple authorisations with different Google accounts,
-  then how do we ensure this? For example, a user authorises two different areas
-  of the app inadvertently using the same Google account. How do we detect this
-  and raise it as an error? We need a unique ID of the Google user who
-  authenticated. We are not saving the Google user ID and can work on looking
-  for duplicates later. The application is best placed for deciding what to do
-  with duplicates - perhaps deleting the older one and linking the newer one
-  in its place.  
-  
-  Bear in mind also that two different application users could be
-  the same physical user and could authorise the same Google account using
-  the separate users. Note that we cannot detect the user doing this in advance;
-  by the time we know a user has authorised the same account twice (thus
-  invalidating the first access token and renewal token) it is done and so
-  only remedial action is possible (e.g informing the user of the invalidated
-  authorisation).
-* If a user can have multiple authorisations, then give each a name so they can
-  be uniquely identyified. This is a new database column. Default it to "Default".
+* When a laravel user provide authorisation, we grab the Google user ID and their
+  email address. This ID is unique to that Google account. With this we can find
+  any Google user that is authorised more than once. While this is permitted,
+  it does use up a limited number of tokens that Google will provide, so this
+  allows any duplicates to be found and merged.

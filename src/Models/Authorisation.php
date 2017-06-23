@@ -17,6 +17,8 @@ namespace Academe\GoogleApi\Models;
  */
 
 use Illuminate\Database\Eloquent\Model;
+use Academe\GoogleApi\Helper;
+use Google_Client;
 use Auth;
 
 class Authorisation extends Model
@@ -197,22 +199,65 @@ class Authorisation extends Model
 
     /**
      * Revoke the record for a new authorisation.
-     * See SO example to revoke the token with Google:
-     * https://stackoverflow.com/questions/31515231/revoke-google-access-token-in-php
      */
-    public function revokeAuth()
+    public function revokeAuth(Google_Client $client = null)
     {
         if ($this->isActive()) {
+            // Start by revoking the access token with Google.
+            // See SO example:
+            // https://stackoverflow.com/questions/31515231/revoke-google-access-token-in-php
+            // Q: Does this remove the refresh token too?
+
+            // Get the default client if none supplied.
+            if (empty($client)) {
+                $client = Helper::getApiClient($this);
+            }
+
+            // Revoke the token with Google.
+            $client->revokeToken($this->access_token);
+
+            // Now remove details ofthe token we have stored.
             $this->state = static::STATE_INACTIVE;
             $this->access_token = null;
             $this->refresh_token = null;
             $this->created_time = null;
             $this->expires_in = null;
 
+            // Save the rusultant state.
+            $this->save();
+
             return true;
         }
 
         return false;
+    }
+
+    /**
+     * Renew a token.
+     */
+    public function refreshToken(Google_Client $client = null)
+    {
+        // A refresh token is needed to renew.
+        if (empty($this->refresh_token)) {
+            return false;
+        }
+
+        // Get the default client if none supplied.
+        if (empty($client)) {
+            $client = Helper::getApiClient($this);
+        }
+
+        // Renew the token with Google.
+        $client->refreshToken($this->refresh_token);
+
+        // Capture the renewed token details: access token, expirey etc. are
+        // all set at once.
+        $this->json_token = $client->getAccessToken();
+
+        // Save the rusultant state.
+        $this->save();
+
+        return true;
     }
 
     /**

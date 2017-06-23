@@ -2,14 +2,9 @@
 
 namespace Academe\GoogleApi;
 
-//use Illuminate\Routing\Controller as BaseController;
 use Academe\GoogleApi\Models\Authorisation;
 use Google_Service_Analytics;
 use Google_Client;
-//use Session;
-//use Input;
-//use Auth;
-//use URL;
 
 class Helper
 {
@@ -68,6 +63,7 @@ class Helper
 
         // Set a callback for storing the new token on renewal.
         // This may be called offline, so it needs to know the auth ID.
+
         $client->setTokenCallback(function($cacheKey, $accessToken) use ($auth) {
             // Refresh from the database. Not sure if this is necessary or desirable.
             //$auth = Authorisation::find($auth->id);
@@ -91,7 +87,6 @@ class Helper
 
     /**
      * Get the authorisation for a user, defaulting to the current user.
-     * TODO: make it selectable by name or ID.
      */
     public static function getUserAuth($userId, $name = null)
     {
@@ -101,24 +96,5 @@ class Helper
     public static function getCurrentUserAuth($name = null)
     {
         return Authorisation::CurrentUser()->name($name)->first();
-    }
-
-    /**
-     * Explicitly refresh the access token for an authorisation.
-     * Will only work if there is a refresh token.
-     */
-    public static function refreshToken(Authorisation $auth)
-    {
-        //$auth = Authorisation::where('id', '=', $auth_id)
-        //    ->whereIn('state', [Authorisation::STATE_ACTIVE, Authorisation::STATE_INACTIVE])
-        //    ->first();
-
-        if ($auth) {
-            $auth->save();
-
-            return true;
-        }
-
-        return false;
     }
 }

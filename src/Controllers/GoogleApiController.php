@@ -196,10 +196,13 @@ class GoogleApiController extends BaseController
      */
     public function revoke(Request $request)
     {
-        $name = Input::get(static::AUTH_NAME_PARAM_NAME, Authorisation::DEFAULT_NAME);
+        // Check if the name of the instance to revoke has been supplied.
+        $name = Input::get(
+            static::AUTH_NAME_PARAM_NAME,
+            Authorisation::DEFAULT_NAME
+        );
 
-        // Users only have one authorisation at this time, so no
-        // context needs to be given.
+        // Get the authorisation of the givem name for the current user.
         $auth = Authorisation::currentUser()
             ->name($name)
             ->isActive()
