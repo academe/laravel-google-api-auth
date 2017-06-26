@@ -113,3 +113,6 @@ the refresh token is not revoked.
   added to, then a force is needed. Look into this.
 * A hook into the client creation (a factory?) will allow a client to be
   customised on creation.
+* The GET routes to authorise and revoke are probably not the best idea without
+  a CSRF token of some sort, otherwise people could provide links that mess with
+  your authorisations.

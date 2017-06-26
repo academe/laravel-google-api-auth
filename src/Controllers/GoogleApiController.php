@@ -94,17 +94,9 @@ class GoogleApiController extends BaseController
         // Additional scopes can be added during an authentication, adding to
         // what is already authorised.
 
-        $add_scopes = (array)Input::get(static::ADD_SCOPES_PARAM_NAME, []);
-
-        foreach($add_scopes as $add_scope) {
-            $auth->addScope($add_scope);
+        if ($add_scopes = (array)Input::get(static::ADD_SCOPES_PARAM_NAME, [])) {
+            $auth->addScope($add_scopes);
         }
-
-        // These two scopes are needed to get access to the Google user ID.
-        // We need that for looking for duplicate OAuth authorisations.
-
-        $auth->addScope('openid');
-        $auth->addScope('email');
 
         $auth->save();
 

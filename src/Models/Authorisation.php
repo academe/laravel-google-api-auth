@@ -18,6 +18,7 @@ namespace Academe\GoogleApi\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Academe\GoogleApi\Helper;
+use Google_Service_Exception;
 use Google_Client;
 use Auth;
 
@@ -39,12 +40,49 @@ class Authorisation extends Model
     //protected $fillable = ['name'];
     protected $guarded = [];
 
+    // These two scopes are needed to get access to the Google user ID.
+    // We need that for looking for duplicate OAuth authorisations.
+
+    protected $base_scopes = ['openid', 'email'];
+
+    /**
+     * Google_Client
+     */
+    protected $google_client;
+
     public function __construct(array $attributes = []) {
         parent::__construct($attributes);
 
         // Set the table name from configuration, so we can play nice
         // with the developer who may need a different name.
         $this->table = config('googleapi.authorisation_table');
+    }
+
+    /**
+     * Set the Google API client.
+     */
+    public function setApiClient(Google_Client $client)
+    {
+        $this->google_client = $client;
+
+        return $this;
+    }
+
+    /**
+     * Get the Google API client.
+     * @param bool $use_default Use the defaukt client from the Helper.
+     */
+    public function getApiClient($use_default = false)
+    {
+        $client = $this->google_client;
+
+        if (empty($client) && $use_default) {
+            $client = Helper::getApiClient($this);
+
+            $this->setApiClient($client);
+        }
+
+        return $client;
     }
 
     /**
@@ -168,15 +206,21 @@ class Authorisation extends Model
     public function setScopesAttribute(array $value)
     {
         $this->attributes['scope'] = json_encode($value);
+
+        // Add the base scopes.
+        $this->addScope($this->base_scopes);
     }
 
     /**
      * Add a single scope to the list we already have.
+     * @param string|array $scopes
      */
-    public function addScope($scope)
+    public function addScope($scopes)
     {
-        if (! $this->hasScope($scope)) {
-            $this->scopes = array_merge($this->scopes, [$scope]);
+        foreach((array)$scopes as $scope) {
+            if (! $this->hasScope($scope)) {
+                $this->scopes = array_merge($this->scopes, [$scope]);
+            }
         }
     }
 
@@ -198,25 +242,41 @@ class Authorisation extends Model
     }
 
     /**
-     * Revoke the record for a new authorisation.
+     * Get the user that owns this authorisation.
      */
-    public function revokeAuth(Google_Client $client = null)
+    public function user()
     {
-        if ($this->isActive()) {
+        return $this->belongsTo(config('googleapi.user_model'));
+    }
+
+    /**
+     * Checks if the authorisation is labelled as active.
+     */
+    public function isActive()
+    {
+        return $this->state === static::STATE_ACTIVE;
+    }
+
+    /**
+     * Revoke the record for a new authorisation.
+     * TODO: Once revoked, we should also go through other authorisations
+     * for this Laravel user and Google account to revoke those too.
+     */
+    public function revokeAuth()
+    {
+        if ($this->isActive() && $this->access_token) {
             // Start by revoking the access token with Google.
             // See SO example:
             // https://stackoverflow.com/questions/31515231/revoke-google-access-token-in-php
             // Q: Does this remove the refresh token too?
 
-            // Get the default client if none supplied.
-            if (empty($client)) {
-                $client = Helper::getApiClient($this);
-            }
+            $client = $this->getApiClient(true);
 
             // Revoke the token with Google.
             $client->revokeToken($this->access_token);
 
-            // Now remove details ofthe token we have stored.
+            // Now remove details of the token we have stored.
+            // CHECKME: should we keep the refresh token? Can that possibly still be of use?
             $this->state = static::STATE_INACTIVE;
             $this->access_token = null;
             $this->refresh_token = null;
@@ -233,19 +293,16 @@ class Authorisation extends Model
     }
 
     /**
-     * Renew a token.
+     * Refresh a token.
      */
-    public function refreshToken(Google_Client $client = null)
+    public function refreshToken()
     {
         // A refresh token is needed to renew.
         if (empty($this->refresh_token)) {
             return false;
         }
 
-        // Get the default client if none supplied.
-        if (empty($client)) {
-            $client = Helper::getApiClient($this);
-        }
+        $client = $this->getApiClient(true);
 
         // Renew the token with Google.
         $client->refreshToken($this->refresh_token);
@@ -261,9 +318,46 @@ class Authorisation extends Model
     }
 
     /**
-     * Get the user that owns this authorisation.
+     * Tests a token to see that it still works.
      */
-    public function user()
+    public function testToken()
     {
-        return $this->belongsTo(config('googleapi.user_model'));
-    }}
+        // If not marked as active, then don't even attempt to access the
+        // remote service.
+
+        if (! $this->isActive()) {
+            throw new Exception('Authorisation is marked as inactive.');
+        }
+
+        $client = $this->getApiClient(true);
+
+        $oauth2 = new \Google_Service_Oauth2($client);
+
+        try {
+            $userinfo = $oauth2->userinfo->get();
+        } catch (Google_Service_Exception $e) {
+            // If the error is a 401, we will try renewing the token manually,
+            // just once, to see if that fixes the problem.
+
+            try {
+                if ($e->getCode() == 401 && $this->refreshToken()) {
+                    // Try accessing the API again.
+
+                    $userinfo = $oauth2->userinfo->get();
+
+                    return true;
+                }
+            } catch (Google_Service_Exception $e) {
+                // Still in error. Mark this authorisation as inactive.
+
+                $this->state = static::STATE_INACTIVE;
+                $this->save();
+            }
+
+            // Renewal did not work, so throw the reason.
+            throw $e;
+        }
+
+        return true;
+    }
+}
