@@ -30,6 +30,12 @@ state up front what contexts it wants to access, i.e. which APIs. The end
 user providing authorisation for their APIs (with OAuth 2) will not need to
 set up anything special in their account.
 
+Using this package, it is possoble for a single user to authorise access to a
+Google account, and then share that authorisation with multiple users.
+All required authorisation details are stored in a model storage rather than a
+user's session, so access to the model instance is all that is needed for an
+authorised access to and API.
+
 I hope that sets the context of what this package is trying to achieve.
 
 ## Requirements
