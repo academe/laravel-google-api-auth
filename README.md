@@ -2,10 +2,14 @@
 
 ## Quick Summary
 
-This package is still in development, but here is a brief description of
-what the intended use-case is.
+This package is still in development, but I am using it in production.
+Here is a brief description of what the intended use-case is.
 
-This is the glue and a wrapper for the Google API Client version 3.
+This is the Laravel glue and a wrapper for the
+[Google API Client](https://github.com/google/google-api-php-client) version 3.
+It provides routes for authorising and revodking, a model and storage for
+multiple authorisations that users may have on your application, and helper
+classes to load and configure the Google API Client.
 
 It's purpose is to allow a Laravel user to authenticate their own
 Google account with your application, so that your application can
