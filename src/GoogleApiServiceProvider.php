@@ -25,7 +25,11 @@ class GoogleApiServiceProvider extends ServiceProvider
         // Or use this and not have to publish the migrations at all?
         $this->loadMigrationsFrom(__DIR__ . '/../migrations/');
 
+        // Load the routes.
         $this->loadRoutesFrom(__DIR__ . '/../routes/routes.php');
+
+        // Supply some package views.
+        $this->loadViewsFrom(__DIR__ . '/../views', 'academe/googleapi');
     }
 
     /**

@@ -20,7 +20,6 @@ use Illuminate\Database\Eloquent\Model;
 use Academe\GoogleApi\Helper;
 use Google_Service_Exception;
 use Google_Client;
-use Auth;
 
 class Authorisation extends Model
 {
@@ -36,7 +35,6 @@ class Authorisation extends Model
     // Overridable by config 'googleapi.authorisation_table'
     protected $table = 'gapi_authorisations';
 
-    // Default values.
     //protected $fillable = ['name'];
     protected $guarded = [];
 
@@ -103,7 +101,7 @@ class Authorisation extends Model
     public function scopeName($query, $name)
     {
         return $query
-            ->where('name', '=', (!empty($name) ? $name : static::DEFAULT_NAME));
+            ->where('name', '=', (!empty($name) ? trim($name) : static::DEFAULT_NAME));
     }
 
     /**
@@ -111,7 +109,7 @@ class Authorisation extends Model
      */
     public function scopeCurrentUser($query)
     {
-        return $this->owner(Auth::user()->id);
+        return $this->owner(auth()->id());
     }
 
     public function scopeIsAuthorising($query)
@@ -261,6 +259,8 @@ class Authorisation extends Model
      * Revoke the record for a new authorisation.
      * TODO: Once revoked, we should also go through other authorisations
      * for this Laravel user and Google account to revoke those too.
+     * Similarly when an authorisation is successful, go through other active
+     * authorisations for that Laravel and Google user, and 
      */
     public function revokeAuth()
     {
@@ -276,7 +276,10 @@ class Authorisation extends Model
             $client->revokeToken($this->access_token);
 
             // Now remove details of the token we have stored.
-            // CHECKME: should we keep the refresh token? Can that possibly still be of use?
+            // CHECKME: should we keep the refresh token? Can that possibly still be be
+            // used? It is not cleat whether revoking only happens to the access token,
+            // or whether the refresh token is also revoked.
+
             $this->state = static::STATE_INACTIVE;
             $this->access_token = null;
             $this->refresh_token = null;

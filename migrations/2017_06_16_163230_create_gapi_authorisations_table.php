@@ -22,6 +22,7 @@ class CreateGapiAuthorisationsTable extends Migration
 
             // The creator/owner of the authorisation.
             // We are assuming the user ID is numeric, and not a UUID.
+            // TODO: get the table name from the user model, derived from config.
             $table->integer('user_id')->unsigned();
             $table->foreign('user_id')->references('id')->on('users');
 

@@ -8,11 +8,6 @@ use Academe\GoogleApi\Helper;
 use Google_Service_Analytics;
 use Illuminate\Http\Request;
 use Google_Client;
-use Session;
-use Config;
-use Input;
-use Auth;
-use URL;
 
 class GoogleApiController extends BaseController
 {
@@ -51,6 +46,7 @@ class GoogleApiController extends BaseController
     }
 
     /**
+     * POST
      * Start the Google API OAuth 2.0 authorisation process.
      * GET parameters:
      * + name       - The name of the authorisation.
@@ -65,12 +61,12 @@ class GoogleApiController extends BaseController
         // With just one set of credentials, each user can have only one
         // active authorisation.
 
-        $name = Input::get(static::AUTH_NAME_PARAM_NAME, Authorisation::DEFAULT_NAME);
+        $name = $request->input(static::AUTH_NAME_PARAM_NAME, Authorisation::DEFAULT_NAME);
 
         // The current user is the creator/owner.
 
         $auth = Authorisation::firstOrNew([
-            'user_id' => Auth::user()->id,
+            'user_id' => auth()->id(),
             'name' => $name,
         ]);
 
@@ -83,7 +79,7 @@ class GoogleApiController extends BaseController
         // Set the required scopes.
         // Passed in as a GET parameter, they will override the current scopes
         // for the authorisation, or default to the config setting.
-        $scopes = (array)Input::get(static::SCOPES_PARAM_NAME, $auth->scopes);
+        $scopes = (array)$request->input(static::SCOPES_PARAM_NAME, $auth->scopes);
 
         if (empty($scopes)) {
             $scopes = config('googleapi.default_scopes', []);
@@ -94,7 +90,7 @@ class GoogleApiController extends BaseController
         // Additional scopes can be added during an authentication, adding to
         // what is already authorised.
 
-        if ($add_scopes = (array)Input::get(static::ADD_SCOPES_PARAM_NAME, [])) {
+        if ($add_scopes = (array)$request->input(static::ADD_SCOPES_PARAM_NAME, [])) {
             $auth->addScope($add_scopes);
         }
 
@@ -103,7 +99,7 @@ class GoogleApiController extends BaseController
         // Set an optional final redirect URL so we can get back to
         // where we requested the authorisation from.
 
-        $final_url = Input::get(static::FINAL_URL_PARAM_NAME, '');
+        $final_url = $request->input(static::FINAL_URL_PARAM_NAME, '');
         $request->session()->put($this->session_key_final_url, $final_url);
 
         // Send the name through to the callback, so we can find this instance.
@@ -120,6 +116,27 @@ class GoogleApiController extends BaseController
     }
 
     /**
+     * GET
+     * Simple form to initiate an authorisation.
+     */
+    public function authoriseForm(Request $request)
+    {
+        $params = $request->input();
+
+        $name = $request->input(
+            static::AUTH_NAME_PARAM_NAME,
+            Authorisation::DEFAULT_NAME
+        );
+
+        return view('academe/googleapi::authorise', [
+            'url' => route('academe_gapi_authorise'),
+            'name' => $name,
+            'params' => $params
+        ]);
+    }
+
+    /**
+     * GET
      * This is where Google returns the user with authorisation.
      * The keys are exchanged for tokens here.
      */
@@ -134,7 +151,7 @@ class GoogleApiController extends BaseController
             ->firstOrFail();
 
         // The temporary token.
-        $code = Input::get('code');
+        $code = $request->input('code');
 
         // The temporary token.
         $final_redirect = $request->session()->get($this->session_key_final_url);
@@ -166,9 +183,9 @@ class GoogleApiController extends BaseController
 
         if (empty($final_redirect)) {
             $final_redirect = (
-                Config::get('googleapi.default_final_route')
-                ? route(Config::get('googleapi.default_final_route'))
-                : url(Config::get('googleapi.default_final_path'))
+                config('googleapi.default_final_route')
+                ? route(config('googleapi.default_final_route'))
+                : url(config('googleapi.default_final_path'))
             );
         }
 
@@ -179,20 +196,18 @@ class GoogleApiController extends BaseController
     }
 
     /**
+     * DELETE
      * Revoke the authorisation then redirect back.
-     * We really should try to revoke the token remotely with
-     * Google first, so we havemore control over which tokens are
-     * active. If we leae too many tokens just hanging there, we
-     * could end up with the older ones (possibly the wrong ones)
-     * being automatically revoked by Google.
      */
     public function revoke(Request $request)
     {
         // Check if the name of the instance to revoke has been supplied.
-        $name = Input::get(
+        $name = $request->input(
             static::AUTH_NAME_PARAM_NAME,
             Authorisation::DEFAULT_NAME
         );
+
+        $final_url = $request->input(static::FINAL_URL_PARAM_NAME);
 
         // Get the authorisation of the givem name for the current user.
         $auth = Authorisation::currentUser()
@@ -205,6 +220,30 @@ class GoogleApiController extends BaseController
             $auth->save();
         }
 
-        return redirect()->back();
+        if ($final_url) {
+            return redirect($final_url);
+        } else {
+            return redirect()->back();
+        }
+    }
+
+    /**
+     * GET
+     * Simple form to revoke the authorisation.
+     */
+    public function revokeForm(Request $request)
+    {
+        $params = $request->input();
+
+        $name = $request->input(
+            static::AUTH_NAME_PARAM_NAME,
+            Authorisation::DEFAULT_NAME
+        );
+
+        return view('academe/googleapi::revoke', [
+            'url' => route('academe_gapi_revoke'),
+            'name' => $name,
+            'params' => $params
+        ]);
     }
 }

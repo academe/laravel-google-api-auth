@@ -12,7 +12,7 @@ Google account with your application, so that your application can
 access the Google APIs on behalf of that user.
 
 Originally it was just for accessing Google Analytics for a remote site,
-but it can be used for any of the Google APIs.
+but it can be used for any of the Google APIs through scopes.
 
 It will support renewal keys, so will be able to access the API offline,
 i.e. when the user is not present.
@@ -56,19 +56,22 @@ You can set and add scopes too. For example:
 <a href="{{ route('academe_gapi_authorise', ['scopes' => [Google_Service_Analytics::ANALYTICS_READONLY]]) }}">GAPI Auth</a>
 ```
 
+You should use POST for this route. If you use GET, then a simple form will be provided for the user to confirm.
+
 All authorisation instances have a name, which is a unique list for each laravel user.
 The default name is "default".
-Specify a name when authorisation by adding the `'name' => 'name meanngful to the context'`
+Specify a name when authorisating by adding the `'name' => 'name meanngful to the user'`
 parameter to the authorise route.
 
 Get access to the API and list Analytics accounts that can be accessed:
 
 ```php
 try {
-    $client = \Academe\GoogleApi\Helper::getApiClient(\Academe\GoogleApi\Helper::getCurrentUserAuth());
+    $client = \Academe\GoogleApi\Helper::getApiClient(\Academe\GoogleApi\Helper::getCurrentUserAuth('default'));
     $service = new Google_Service_Analytics($client);
     $accounts = $service->management_accountSummaries->listManagementAccountSummaries();
 } catch (Exception $e) {
+    // Invalid credentials, or any other error in the API request.
     $client = null;
 }
 
@@ -80,8 +83,13 @@ if ($client) {
 }
 ```
 
-Once authorised, this will refresh the access token automatically, so long as
+Once authorised, the access token will be refreshed automatically, so long as
 the refresh token is not revoked.
+
+The `academe_gapi_authorise` route will revoke am authorisation for the current user.
+Parameters include `name` to identify which authorisaition to revoke.
+This route should be called using the `DELETE` HTTP method.
+A simple confirmation form is provided if the `GET` method is used.
 
 ## Other Notes
 
@@ -106,13 +114,10 @@ the refresh token is not revoked.
 * Think of a way to handle race conditions on access token renewals. It probably
   won't be a problem, as the renewal token can be reused, so an old access
   token will always be caught by exception and renewed.
-* The 'offline' and 'force' parameters foce a new reneal token to be generated on
+* The 'offline' and 'force' parameters force a new renewal token to be generated on
   every authorisartion. There may be times when the authorisation is not needed
   for offlne purposes. There may also be times when a "force" is not needed, and
   the current refresh token can continue to be used. If the scope changes, e.g. is
   added to, then a force is needed. Look into this.
 * A hook into the client creation (a factory?) will allow a client to be
   customised on creation.
-* The GET routes to authorise and revoke are probably not the best idea without
-  a CSRF token of some sort, otherwise people could provide links that mess with
-  your authorisations.
