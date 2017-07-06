@@ -7,9 +7,9 @@ Here is a brief description of what the intended use-case is.
 
 This is the Laravel glue and a wrapper for the
 [Google API Client](https://github.com/google/google-api-php-client) version 3.
-It provides routes for authorising and revodking, a model and storage for
-multiple authorisations that users may have on your application, and helper
-classes to load and configure the Google API Client.
+It provides routes for *non-service account* authorising and revodking, a model
+and storage for multiple authorisations that users may have on your application,
+and helper classes to load and configure the Google API Client.
 
 It's purpose is to allow a Laravel user to authenticate their own
 Google account with your application, so that your application can
@@ -31,6 +31,32 @@ user providing authorisation for their APIs (with OAuth 2) will not need to
 set up anything special in their account.
 
 I hope that sets the context of what this package is trying to achieve.
+
+## Requirements
+
+This package requires PHP >=5.4 and Laravel >= 5.4
+
+## Installation
+
+Install via composer - edit your `composer.json` to require the package.
+
+```js
+"require": {
+    "academe/googleapi": "1.*"
+}
+```
+
+Then run `composer update` in your terminal to pull it in.
+
+Or use `composer require academe/googleapi`
+
+## Laravel
+
+To use in laravel add the following to the `providers` array in your `config/app.php`
+
+```php
+Academe\GoogleApi\GoogleApiServiceProvider::class,
+```
 
 ## Using This Package
 
