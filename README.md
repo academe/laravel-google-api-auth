@@ -34,7 +34,7 @@ I hope that sets the context of what this package is trying to achieve.
 
 ## Requirements
 
-This package requires PHP >=5.4 and Laravel >= 5.4
+This package requires PHP >=5.6 and Laravel >= 5.4
 
 ## Installation
 
@@ -57,6 +57,8 @@ To use in laravel add the following to the `providers` array in your `config/app
 ```php
 Academe\GoogleApi\GoogleApiServiceProvider::class,
 ```
+
+There is no facade in this package at this time.
 
 ## Using This Package
 
