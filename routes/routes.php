@@ -2,12 +2,6 @@
 
 /**
  * A web route, since the sessions need starting up.
- * FIXME: although convenience, these should probably not be GET routes.
- * authorise and revoke should be POST, or even POST and DELETE respecively,
- * and have CSRF protection. 'auth' middleware here would also good.
- * Strictly, authorise and revoke routes change the state of the system, so
- * they must not be GET routes.
- * The documentation needs to show how these can be overridden or disabled.
  */
 
 Route::group(['middleware' => 'web'], function() {
