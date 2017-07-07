@@ -83,13 +83,43 @@ class Helper
     }
 
     /**
-     * Get the authorisation for a user, defaulting to the current user.
+     * Start an authorisation process.
+     * @returns Redirect A redirect to the Google authorisation page.
+     */
+    public static function initiateAuthorisation(Authorisation $auth, $request, $final_url)
+    {
+        // If the auth is active, then revoke it first.
+        if ($auth->isActive()) {
+            $auth->revokeAuth();
+        }
+
+        // Initialise the model instance for a new authorisation.
+        $auth->initAuth();
+
+        $auth->save();
+
+        $request->session()->put('gapi_auth_final_url', $final_url);
+
+        $request->session()->put('gapi_auth_name', $auth->name);
+
+        $client = static::getAuthClient($auth);
+
+        $authUrl = $client->createAuthUrl();
+
+        return redirect($authUrl);
+    }
+
+    /**
+     * Get the authorisation for a user.
      */
     public static function getUserAuth($userId, $name = null)
     {
         return Authorisation::User($userId)->name($name)->first();
     }
 
+    /**
+     * Get the authorisation for the current user.
+     */
     public static function getCurrentUserAuth($name = null)
     {
         return Authorisation::CurrentUser()->name($name)->first();

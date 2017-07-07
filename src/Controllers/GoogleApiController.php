@@ -103,6 +103,7 @@ class GoogleApiController extends BaseController
         $request->session()->put($this->session_key_final_url, $final_url);
 
         // Send the name through to the callback, so we can find this instance.
+        // CHECKME: can we send this via the state parameter?
 
         $request->session()->put($this->session_key_name, $name);
 
@@ -153,7 +154,7 @@ class GoogleApiController extends BaseController
         // The temporary token.
         $code = $request->input('code');
 
-        // The temporary token.
+        // The final URL we want to take the user to.
         $final_redirect = $request->session()->get($this->session_key_final_url);
 
         $client = Helper::getAuthClient($auth);

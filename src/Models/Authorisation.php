@@ -41,7 +41,7 @@ class Authorisation extends Model
     // These two scopes are needed to get access to the Google user ID.
     // We need that for looking for duplicate OAuth authorisations.
 
-    protected $base_scopes = ['openid', 'email'];
+    protected $base_scopes = ['openid', 'email', 'profile'];
 
     /**
      * Google_Client
@@ -345,7 +345,6 @@ class Authorisation extends Model
             try {
                 if ($e->getCode() == 401 && $this->refreshToken()) {
                     // Try accessing the API again.
-
                     $userinfo = $oauth2->userinfo->get();
 
                     return true;
