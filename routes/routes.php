@@ -1,36 +1,29 @@
 <?php
 
-/**
- * A web route, since the sessions need starting up.
- */
+// Start the Google API authorisation process.
+// Save a few details then send the user to Google.
 
-Route::group(['middleware' => 'web'], function() {
+Route::post('oauth2authorise', 'GoogleApiController@authorise')
+    ->name('academe_gapi_authorise');
 
-    // Start the Google API authorisation process.
-    // Save a few details then send the user to Google.
+// Simple GET catcher for initialising an authorisation.
+// Provides a simple form with a single button.
 
-    Route::post('gapi/oauth2authorise', 'Academe\GoogleApi\Controllers\GoogleApiController@authorise')
-        ->name('academe_gapi_authorise');
+Route::get('oauth2authorise', 'GoogleApiController@authoriseForm');
 
-    // Simple GET catcher for initialising an authorisation.
-    // Provides a simple form with a single button.
+// The "redirect" route, i.e. the return from Google after authorising.
 
-    Route::get('gapi/oauth2authorise', 'Academe\GoogleApi\Controllers\GoogleApiController@authoriseForm');
+Route::get('oauth2callback', 'GoogleApiController@callback')
+    ->name('academe_gapi_callback');
 
-    // The "redirect" route, i.e. the return from Google after authorising.
+// Log out of Google.
+// Revoke the tokens with Google then discard the local access tokens.
 
-    Route::get('gapi/oauth2callback', 'Academe\GoogleApi\Controllers\GoogleApiController@callback')
-        ->name('academe_gapi_callback');
+Route::delete('oauth2revoke', 'GoogleApiController@revoke')
+    ->name('academe_gapi_revoke');
 
-    // Log out of Google.
-    // Revoke the tokens with Google then discard the local access tokens.
+// Simple GET catcher for revoking.
+// Provides a simple form with a single button.
 
-    Route::delete('gapi/oauth2revoke', 'Academe\GoogleApi\Controllers\GoogleApiController@revoke')
-        ->name('academe_gapi_revoke');
+Route::get('oauth2revoke', 'GoogleApiController@revokeForm');
 
-    // Simple GET catcher for revoking.
-    // Provides a simple form with a single button.
-
-    Route::get('gapi/oauth2revoke', 'Academe\GoogleApi\Controllers\GoogleApiController@revokeForm');
-
-});

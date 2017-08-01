@@ -122,9 +122,12 @@ class Authorisation extends Model
         return $query->where('state', '=', static::STATE_ACTIVE);
     }
 
+    /**
+     * Inactive includes authorisations going through the authorisation state.
+     */
     public function scopeIsInactive($query)
     {
-        return $query->where('state', '=', static::STATE_INACTIVE);
+        return $query->where('state', '!=', static::STATE_ACTIVE);
     }
 
     /**
